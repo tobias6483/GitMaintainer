@@ -32,6 +32,14 @@ python -m pytest
 GitHub metric extraction tests use local JSON fixtures under `tests/fixtures/github/`.
 Keep fixtures small, representative, and free of tokens or private repository data.
 
+## Build
+
+```sh
+python -m build
+```
+
+The build command creates source and wheel artifacts in `dist/`, which is ignored locally.
+
 ## Manual QA
 
 - Check invalid input returns exit code `2`.
