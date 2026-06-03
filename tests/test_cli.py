@@ -2,6 +2,7 @@ import pytest
 
 from urllib.error import HTTPError
 
+from gitmaintainer.cli import main
 from gitmaintainer.github import _http_error_message, parse_repo
 
 
@@ -21,6 +22,14 @@ def test_parse_repo(value: str, expected: tuple[str, str]) -> None:
 def test_parse_repo_rejects_invalid_input() -> None:
     with pytest.raises(ValueError):
         parse_repo("not-a-repo")
+
+
+def test_version_option_prints_package_version(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as error:
+        main(["--version"])
+
+    assert error.value.code == 0
+    assert capsys.readouterr().out.strip() == "gitmaintainer 0.1.0"
 
 
 def test_rate_limit_error_is_actionable() -> None:

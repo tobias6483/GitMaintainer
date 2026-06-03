@@ -45,6 +45,12 @@ Generate a README badge:
 gitmaintainer pallets/flask --badge
 ```
 
+Check the installed CLI version:
+
+```sh
+gitmaintainer --version
+```
+
 Set `GITHUB_TOKEN` to increase API limits:
 
 ```sh
