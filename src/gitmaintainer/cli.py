@@ -6,7 +6,7 @@ import sys
 
 from .badge import badge_markdown
 from .github import GitHubClient, GitHubError, parse_repo
-from .models import ApiBudget, RepoMetrics
+from .models import ApiBudget, PackageManifest, RepoMetrics
 from .scoring import score_repository
 
 
@@ -58,6 +58,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Open PRs: {metrics.open_pr_count}")
         print(f"Oldest open PR: {_days(metrics.oldest_open_pr_days)}")
         print(f"Bus factor-ish estimate: {metrics.bus_factor_estimate or 'unknown'}")
+        print(f"Package manifests: {_package_manifests_text(metrics.package_manifests)}")
         warning = _api_budget_warning(metrics.api_budget)
         if warning:
             print(f"GitHub API budget: {warning}")
@@ -79,7 +80,24 @@ def _metrics_dict(metrics: RepoMetrics) -> dict[str, object]:
         "oldest_open_pr_days": metrics.oldest_open_pr_days,
         "open_pr_count": metrics.open_pr_count,
         "bus_factor_estimate": metrics.bus_factor_estimate,
+        "package_manifests": [
+            {
+                "path": manifest.path,
+                "ecosystem": manifest.ecosystem,
+                "package_manager": manifest.package_manager,
+            }
+            for manifest in metrics.package_manifests
+        ],
     }
+
+
+def _package_manifests_text(manifests: tuple[PackageManifest, ...]) -> str:
+    if not manifests:
+        return "none detected"
+    return ", ".join(
+        f"{manifest.path} ({manifest.package_manager or manifest.ecosystem})"
+        for manifest in manifests
+    )
 
 
 def _api_budget_dict(api_budget: ApiBudget | None) -> dict[str, object] | None:

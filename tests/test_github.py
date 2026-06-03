@@ -10,6 +10,7 @@ from gitmaintainer.github import (
     _JsonResponse,
     _bus_factor,
     _first_non_author_comment,
+    _package_manifests_from_contents,
     _parse_link_header,
     _with_per_page,
 )
@@ -111,6 +112,15 @@ def test_rate_limit_headers_are_recorded_as_lowest_remaining_budget() -> None:
     assert client._api_budget.reset_at == "2026-01-01T00:00:00Z"
 
 
+def test_package_manifest_detection_uses_known_root_files_only() -> None:
+    manifests = _package_manifests_from_contents(_fixture("contents.json"))  # type: ignore[arg-type]
+
+    assert [(manifest.path, manifest.ecosystem, manifest.package_manager) for manifest in manifests] == [
+        ("pyproject.toml", "Python", None),
+        ("package.json", "JavaScript", "npm"),
+    ]
+
+
 def test_metrics_are_extracted_from_github_api_fixtures() -> None:
     client = GitHubClient(
         token="token",
@@ -146,6 +156,9 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
             return _JsonResponse(payload=_fixture("issues.json"), headers=headers)
         if parsed.path == "/repos/octo/widget/pulls":
             return _JsonResponse(payload=_fixture("pulls.json"), headers=headers)
+        if parsed.path == "/repos/octo/widget/contents":
+            assert query.get("ref") == ["main"]
+            return _JsonResponse(payload=_fixture("contents.json"), headers=headers)
         if parsed.path == "/repos/octo/widget/issues/1/comments":
             return _JsonResponse(payload=_fixture("comments_issue_1.json"), headers=headers)
         if parsed.path == "/repos/octo/widget/issues/2/comments":
@@ -168,7 +181,14 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
     assert metrics.oldest_open_pr_days == 40
     assert metrics.open_pr_count == 2
     assert metrics.bus_factor_estimate == 2
+    assert [
+        (manifest.path, manifest.ecosystem, manifest.package_manager)
+        for manifest in metrics.package_manifests
+    ] == [
+        ("pyproject.toml", "Python", None),
+        ("package.json", "JavaScript", "npm"),
+    ]
     assert metrics.api_budget is not None
     assert metrics.api_budget.limit == 5000
-    assert metrics.api_budget.remaining == 4992
+    assert metrics.api_budget.remaining == 4991
     assert metrics.api_budget.reset_at == "2026-01-01T00:00:00Z"

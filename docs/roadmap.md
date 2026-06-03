@@ -16,12 +16,13 @@
 - More test fixtures for scoring and GitHub metric edge cases
 - Default branch, archived status, and fork status in reports
 - Bounded pagination and GitHub API budget reporting
+- Root package manifest metadata
 
 ## Phase 2: Dependency Review Use Cases
 
 - Compare multiple repositories
 - Export reports
-- Package ecosystem metadata
+- Dependency-file parsing for supported package ecosystems
 - Larger dependency-audit sampling controls
 - Maintainer signal explanations suitable for README or audit reports
 

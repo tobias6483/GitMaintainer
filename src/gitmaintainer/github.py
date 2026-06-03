@@ -12,9 +12,29 @@ from urllib.error import HTTPError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
-from .models import ApiBudget, RepoMetrics
+from .models import ApiBudget, PackageManifest, RepoMetrics
 
 GITHUB_API = "https://api.github.com"
+PACKAGE_MANIFESTS = {
+    "package.json": ("JavaScript", "npm"),
+    "pnpm-lock.yaml": ("JavaScript", "pnpm"),
+    "yarn.lock": ("JavaScript", "Yarn"),
+    "pyproject.toml": ("Python", None),
+    "requirements.txt": ("Python", "pip"),
+    "Pipfile": ("Python", "Pipenv"),
+    "poetry.lock": ("Python", "Poetry"),
+    "Cargo.toml": ("Rust", "Cargo"),
+    "go.mod": ("Go", "Go modules"),
+    "Gemfile": ("Ruby", "Bundler"),
+    "composer.json": ("PHP", "Composer"),
+    "pom.xml": ("Java", "Maven"),
+    "build.gradle": ("Java", "Gradle"),
+    "build.gradle.kts": ("Java", "Gradle"),
+    "mix.exs": ("Elixir", "Mix"),
+    "Package.swift": ("Swift", "Swift Package Manager"),
+    "pubspec.yaml": ("Dart", "pub"),
+    "packages.config": (".NET", "NuGet"),
+}
 
 
 class GitHubError(RuntimeError):
@@ -59,6 +79,7 @@ class GitHubClient:
         repo_path = f"/repos/{quote(owner)}/{quote(repo)}"
 
         repository = self._get_object(repo_path)
+        default_branch = repository.get("default_branch")
         commits = self._get_paginated(f"{repo_path}/commits?per_page=30", max_pages=3)
         releases = self._get(f"{repo_path}/releases?per_page=1")
         issues = self._get_paginated(
@@ -75,11 +96,12 @@ class GitHubClient:
         issue_response = self._median_issue_response_hours(issues)
         oldest_pr_days = _oldest_pr_age_days(pulls, now)
         bus_factor = _bus_factor(commits)
+        package_manifests = self._package_manifests(repo_path, default_branch)
 
         return RepoMetrics(
             owner=owner,
             name=repo,
-            default_branch=repository.get("default_branch"),
+            default_branch=default_branch,
             is_archived=bool(repository.get("archived")),
             is_fork=bool(repository.get("fork")),
             latest_commit_days=latest_commit_days,
@@ -88,6 +110,7 @@ class GitHubClient:
             oldest_open_pr_days=oldest_pr_days,
             open_pr_count=len(pulls),
             bus_factor_estimate=bus_factor,
+            package_manifests=package_manifests,
             api_budget=self._api_budget,
         )
 
@@ -185,6 +208,24 @@ class GitHubClient:
             return None
         return float(median(response_times))
 
+    def _package_manifests(
+        self,
+        repo_path: str,
+        default_branch: object,
+    ) -> tuple[PackageManifest, ...]:
+        path = f"{repo_path}/contents"
+        if isinstance(default_branch, str) and default_branch:
+            path = f"{path}?ref={quote(default_branch, safe='')}"
+
+        try:
+            contents = self._get(path)
+        except GitHubError as error:
+            if "not found" in str(error).lower():
+                return ()
+            raise
+
+        return _package_manifests_from_contents(contents)
+
 
 def _latest_commit_at(commits: list[dict]) -> dt.datetime | None:
     if not commits:
@@ -241,6 +282,26 @@ def _commit_author(commit: dict) -> str | None:
     if login:
         return login
     return commit.get("commit", {}).get("author", {}).get("email")
+
+
+def _package_manifests_from_contents(contents: list[dict]) -> tuple[PackageManifest, ...]:
+    manifests: list[PackageManifest] = []
+    for item in contents:
+        if item.get("type") != "file":
+            continue
+        name = item.get("name")
+        path = item.get("path")
+        if not isinstance(name, str) or not isinstance(path, str):
+            continue
+
+        metadata = PACKAGE_MANIFESTS.get(name)
+        if metadata is None:
+            continue
+        ecosystem, package_manager = metadata
+        manifests.append(
+            PackageManifest(path=path, ecosystem=ecosystem, package_manager=package_manager)
+        )
+    return tuple(manifests)
 
 
 def _days_since(value: dt.datetime | None, now: dt.datetime) -> int | None:

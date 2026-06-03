@@ -61,6 +61,7 @@ GitMaintainer combines:
 - median issue response time
 - age of open pull requests
 - recent commit author concentration as a bus-factor-ish estimate
+- detected package manifest files for dependency-review context
 
 The score is intentionally explainable and conservative. It should guide human review, not replace it.
 
