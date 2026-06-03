@@ -9,6 +9,7 @@
 - Add package manifest metadata for dependency-review context.
 - Add package build verification for release readiness.
 - Add dependency count summaries for `package.json` and `requirements.txt`.
+- Add a CLI `--version` option.
 
 ## 0.1.0
 

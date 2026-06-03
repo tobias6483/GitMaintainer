@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 
+from . import __version__
 from .badge import badge_markdown
 from .github import GitHubClient, GitHubError, parse_repo
 from .models import ApiBudget, DependencySummary, PackageManifest, RepoMetrics
@@ -19,6 +20,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON")
     parser.add_argument("--badge", action="store_true", help="Print a shields.io badge snippet")
     parser.add_argument("--token", help="GitHub token. Defaults to GITHUB_TOKEN.")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args(argv)
 
     try:

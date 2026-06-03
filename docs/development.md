@@ -19,6 +19,7 @@ python -m pip install -e ".[dev]"
 python -m gitmaintainer pallets/flask
 python -m gitmaintainer pallets/flask --json
 python -m gitmaintainer pallets/flask --badge
+python -m gitmaintainer --version
 ```
 
 Set `GITHUB_TOKEN` for higher GitHub API limits.
@@ -43,6 +44,7 @@ The build command creates source and wheel artifacts in `dist/`, which is ignore
 ## Manual QA
 
 - Check invalid input returns exit code `2`.
+- Check `--version` prints the package version.
 - Check JSON output is valid.
 - Check badge output is Markdown.
 - Check at least one popular public repository through the live GitHub API.
