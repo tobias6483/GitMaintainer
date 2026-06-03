@@ -1,0 +1,36 @@
+- name: bug
+  color: d73a4a
+  description: Something is not working.
+- name: enhancement
+  color: a2eeef
+  description: New feature or improvement.
+- name: documentation
+  color: 0075ca
+  description: Documentation updates.
+- name: security
+  color: b60205
+  description: Security-sensitive issue or review.
+- name: privacy
+  color: 5319e7
+  description: Privacy-sensitive issue or review.
+- name: needs-triage
+  color: fbca04
+  description: Needs maintainer review.
+- name: area:api
+  color: c5def5
+  description: GitHub API integration.
+- name: area:cli
+  color: c5def5
+  description: Command-line interface.
+- name: area:docs
+  color: c5def5
+  description: Documentation.
+- name: area:release
+  color: c5def5
+  description: Release and packaging workflow.
+- name: area:scoring
+  color: c5def5
+  description: Maintenance scoring model.
+- name: privacy-review
+  color: 5319e7
+  description: Requires privacy review before merge.

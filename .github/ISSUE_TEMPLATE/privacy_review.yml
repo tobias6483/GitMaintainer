@@ -1,0 +1,27 @@
+name: Privacy or security review
+description: Propose or review changes that affect data, tokens, permissions, or network access.
+title: "Review: "
+labels: ["privacy", "security", "privacy-review", "needs-triage"]
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed change
+      description: What data, permission, token, or network behavior changes?
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Data involved
+      description: List any stored, transmitted, or displayed data.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Review checklist
+      options:
+        - label: The change is documented in `PRIVACY.md` if user-visible.
+        - label: Token handling is documented in `SECURITY.md` if relevant.
+        - label: The change avoids telemetry or makes it explicitly opt-in.

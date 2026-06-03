@@ -1,0 +1,21 @@
+name: Documentation issue
+description: Report missing, unclear, or outdated documentation.
+title: "Docs: "
+labels: ["documentation", "area:docs"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Documentation problem
+      description: What is unclear, missing, or outdated?
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Page or file
+      placeholder: README.md
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement

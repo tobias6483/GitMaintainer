@@ -9,6 +9,10 @@ It inspects public GitHub activity and reports a maintenance status:
 - **Risky**: notable stale signals
 - **Abandoned**: little evidence of ongoing maintenance
 
+## Status
+
+GitMaintainer is an early CLI MVP. The scoring model is explainable by design and will change as signals improve.
+
 ## Install
 
 ```sh
@@ -58,6 +62,18 @@ GitMaintainer combines:
 - contributor concentration as a bus-factor-ish estimate
 
 The score is intentionally explainable and conservative. It should guide human review, not replace it.
+
+## Privacy
+
+GitMaintainer reads public GitHub API data and prints results locally. It does not store repository data, tokens, analytics, or telemetry. See `PRIVACY.md`.
+
+## Documentation
+
+- `docs/development.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `docs/roadmap.md`
+- `docs/release.md`
 
 ## Development
 
