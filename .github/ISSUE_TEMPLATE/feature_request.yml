@@ -15,3 +15,17 @@ body:
     attributes:
       label: Why?
       description: Who benefits, and how would they use it?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - CLI
+        - Scoring
+        - GitHub API
+        - Badge
+        - Documentation
+        - Release or packaging
+        - Other
