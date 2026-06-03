@@ -7,6 +7,7 @@ from collections import Counter
 from dataclasses import dataclass
 from email.message import Message
 from statistics import median
+from typing import Callable
 from urllib.error import HTTPError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
@@ -44,12 +45,17 @@ def parse_repo(value: str) -> tuple[str, str]:
 
 
 class GitHubClient:
-    def __init__(self, token: str | None = None) -> None:
+    def __init__(
+        self,
+        token: str | None = None,
+        clock: Callable[[], dt.datetime] | None = None,
+    ) -> None:
         self.token = token or os.environ.get("GITHUB_TOKEN")
+        self._clock = clock or (lambda: dt.datetime.now(dt.timezone.utc))
         self._api_budget: ApiBudget | None = None
 
     def metrics(self, owner: str, repo: str) -> RepoMetrics:
-        now = dt.datetime.now(dt.timezone.utc)
+        now = self._clock()
         repo_path = f"/repos/{quote(owner)}/{quote(repo)}"
 
         repository = self._get_object(repo_path)

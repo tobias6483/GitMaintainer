@@ -14,6 +14,8 @@ GitMaintainer is a small Python CLI with no runtime dependencies.
 
 GitHub API access is kept separate from scoring so metrics can later come from cached data, fixtures, a browser extension, or a hosted API.
 
+Metric extraction tests use local GitHub API JSON fixtures to cover end-to-end mapping without live network access. Fixtures should stay small and focused on stable response fields used by the metric extractor.
+
 GitHub pagination is bounded per endpoint to keep CLI runtime predictable. Commit sampling follows up to three pages, issue and open pull request sampling follow up to two pages, and issue comments stay capped to the first page for median response-time cost control.
 
 Rate-limit headers are captured during API access and attached to metrics as API budget metadata. JSON output exposes the budget directly, while text output only warns when remaining requests are low.

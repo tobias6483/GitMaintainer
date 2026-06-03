@@ -15,6 +15,7 @@
 | Actionable API errors | Implemented | Rate-limit, auth, forbidden, and 404 errors are summarized. |
 | Bounded API pagination | Implemented | Samples multiple pages for commits, issues, and open PRs without unbounded CLI runtime. |
 | Rate-limit budget reporting | Implemented | JSON includes the observed GitHub API budget; text output warns when remaining budget is low. |
+| GitHub API fixture coverage | Implemented | Metric extraction has deterministic fixture coverage for core repository, activity, response, PR, pagination, and budget signals. |
 
 ## Planned Improvements
 
