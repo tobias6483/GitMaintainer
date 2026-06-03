@@ -11,6 +11,13 @@ class ApiBudget:
 
 
 @dataclass(frozen=True)
+class PackageManifest:
+    path: str
+    ecosystem: str
+    package_manager: str | None = None
+
+
+@dataclass(frozen=True)
 class RepoMetrics:
     owner: str
     name: str
@@ -23,6 +30,7 @@ class RepoMetrics:
     oldest_open_pr_days: int | None
     open_pr_count: int
     bus_factor_estimate: int | None
+    package_manifests: tuple[PackageManifest, ...] = ()
     api_budget: ApiBudget | None = None
 
 

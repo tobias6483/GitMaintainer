@@ -1,0 +1,22 @@
+[
+  {
+    "name": "pyproject.toml",
+    "path": "pyproject.toml",
+    "type": "file"
+  },
+  {
+    "name": "package.json",
+    "path": "package.json",
+    "type": "file"
+  },
+  {
+    "name": "docs",
+    "path": "docs",
+    "type": "dir"
+  },
+  {
+    "name": "README.md",
+    "path": "README.md",
+    "type": "file"
+  }
+]

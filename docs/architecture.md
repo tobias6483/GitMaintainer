@@ -20,6 +20,8 @@ GitHub pagination is bounded per endpoint to keep CLI runtime predictable. Commi
 
 Rate-limit headers are captured during API access and attached to metrics as API budget metadata. JSON output exposes the budget directly, while text output only warns when remaining requests are low.
 
+Package manifest detection uses the GitHub Contents API for root-level files on the repository default branch. It records ecosystem/package-manager metadata only; dependency parsing is a future separation point.
+
 Scoring is intentionally explainable. Avoid opaque models until the project has clear validation data and a documented evaluation process.
 
 GitHub error handling should return actionable CLI messages. Avoid exposing raw API JSON unless a debug mode is added.
@@ -27,5 +29,5 @@ GitHub error handling should return actionable CLI messages. Avoid exposing raw 
 ## Future Separation Points
 
 - richer maintainer identity/contributor analysis beyond recent commit authors
-- package ecosystem integrations
+- dependency parsing for supported package ecosystems
 - web or browser extension frontend

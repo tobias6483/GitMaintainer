@@ -16,8 +16,9 @@
 | Bounded API pagination | Implemented | Samples multiple pages for commits, issues, and open PRs without unbounded CLI runtime. |
 | Rate-limit budget reporting | Implemented | JSON includes the observed GitHub API budget; text output warns when remaining budget is low. |
 | GitHub API fixture coverage | Implemented | Metric extraction has deterministic fixture coverage for core repository, activity, response, PR, pagination, and budget signals. |
+| Package manifest metadata | Implemented | Detects known root package manifests such as `pyproject.toml`, `package.json`, `go.mod`, and `Cargo.toml`. |
 
 ## Planned Improvements
 
-- Add package manager metadata for dependency-oriented checks.
+- Add dependency-file parsing for supported package ecosystems.
 - Add browser extension or web UI after CLI scoring stabilizes.
