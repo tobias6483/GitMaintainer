@@ -6,7 +6,7 @@ import sys
 
 from .badge import badge_markdown
 from .github import GitHubClient, GitHubError, parse_repo
-from .models import ApiBudget, PackageManifest, RepoMetrics
+from .models import ApiBudget, DependencySummary, PackageManifest, RepoMetrics
 from .scoring import score_repository
 
 
@@ -85,6 +85,7 @@ def _metrics_dict(metrics: RepoMetrics) -> dict[str, object]:
                 "path": manifest.path,
                 "ecosystem": manifest.ecosystem,
                 "package_manager": manifest.package_manager,
+                "dependency_summary": _dependency_summary_dict(manifest.dependency_summary),
             }
             for manifest in metrics.package_manifests
         ],
@@ -95,8 +96,32 @@ def _package_manifests_text(manifests: tuple[PackageManifest, ...]) -> str:
     if not manifests:
         return "none detected"
     return ", ".join(
-        f"{manifest.path} ({manifest.package_manager or manifest.ecosystem})"
+        f"{manifest.path} ({manifest.package_manager or manifest.ecosystem}{_dependency_summary_text(manifest.dependency_summary)})"
         for manifest in manifests
+    )
+
+
+def _dependency_summary_dict(summary: DependencySummary | None) -> dict[str, object] | None:
+    if summary is None:
+        return None
+    return {
+        "parsed": summary.parsed,
+        "dependency_count": summary.dependency_count,
+        "dev_dependency_count": summary.dev_dependency_count,
+        "optional_dependency_count": summary.optional_dependency_count,
+        "note": summary.note,
+    }
+
+
+def _dependency_summary_text(summary: DependencySummary | None) -> str:
+    if summary is None:
+        return ""
+    if not summary.parsed:
+        return ", dependencies not parsed"
+    return (
+        f", deps {summary.dependency_count or 0}"
+        f", dev {summary.dev_dependency_count or 0}"
+        f", optional {summary.optional_dependency_count or 0}"
     )
 
 

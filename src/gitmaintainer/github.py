@@ -12,7 +12,7 @@ from urllib.error import HTTPError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
-from .models import ApiBudget, PackageManifest, RepoMetrics
+from .models import ApiBudget, DependencySummary, PackageManifest, RepoMetrics
 
 GITHUB_API = "https://api.github.com"
 PACKAGE_MANIFESTS = {
@@ -167,6 +167,17 @@ class GitHubClient:
         except HTTPError as error:
             raise GitHubError(_http_error_message(error, url)) from error
 
+    def _get_text_url(self, url: str) -> str:
+        request = Request(url)
+        if self.token and url.startswith(GITHUB_API):
+            request.add_header("Authorization", f"Bearer {self.token}")
+
+        try:
+            with urlopen(request, timeout=20) as response:
+                return response.read().decode("utf-8")
+        except HTTPError as error:
+            raise GitHubError(_http_error_message(error, url)) from error
+
     def _record_rate_limit(self, headers: Message) -> None:
         limit = _parse_int(headers.get("X-RateLimit-Limit"))
         remaining = _parse_int(headers.get("X-RateLimit-Remaining"))
@@ -224,7 +235,7 @@ class GitHubClient:
                 return ()
             raise
 
-        return _package_manifests_from_contents(contents)
+        return _package_manifests_from_contents(contents, fetch_text=self._get_text_url)
 
 
 def _latest_commit_at(commits: list[dict]) -> dt.datetime | None:
@@ -284,7 +295,10 @@ def _commit_author(commit: dict) -> str | None:
     return commit.get("commit", {}).get("author", {}).get("email")
 
 
-def _package_manifests_from_contents(contents: list[dict]) -> tuple[PackageManifest, ...]:
+def _package_manifests_from_contents(
+    contents: list[dict],
+    fetch_text: Callable[[str], str] | None = None,
+) -> tuple[PackageManifest, ...]:
     manifests: list[PackageManifest] = []
     for item in contents:
         if item.get("type") != "file":
@@ -298,10 +312,81 @@ def _package_manifests_from_contents(contents: list[dict]) -> tuple[PackageManif
         if metadata is None:
             continue
         ecosystem, package_manager = metadata
+        dependency_summary = _dependency_summary(name, item, fetch_text)
         manifests.append(
-            PackageManifest(path=path, ecosystem=ecosystem, package_manager=package_manager)
+            PackageManifest(
+                path=path,
+                ecosystem=ecosystem,
+                package_manager=package_manager,
+                dependency_summary=dependency_summary,
+            )
         )
     return tuple(manifests)
+
+
+def _dependency_summary(
+    name: str,
+    item: dict,
+    fetch_text: Callable[[str], str] | None,
+) -> DependencySummary | None:
+    if name not in {"package.json", "requirements.txt"}:
+        return DependencySummary(parsed=False, note="Dependency parsing is not supported yet")
+    if fetch_text is None:
+        return None
+
+    download_url = item.get("download_url")
+    if not isinstance(download_url, str) or not download_url:
+        return DependencySummary(parsed=False, note="Dependency file content is unavailable")
+
+    try:
+        text = fetch_text(download_url)
+    except GitHubError:
+        return DependencySummary(parsed=False, note="Dependency file could not be fetched")
+
+    if name == "package.json":
+        return _package_json_dependency_summary(text)
+    return _requirements_dependency_summary(text)
+
+
+def _package_json_dependency_summary(text: str) -> DependencySummary:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return DependencySummary(parsed=False, note="package.json is invalid JSON")
+
+    if not isinstance(payload, dict):
+        return DependencySummary(parsed=False, note="package.json root is not an object")
+
+    return DependencySummary(
+        parsed=True,
+        dependency_count=_dependency_object_size(payload.get("dependencies")),
+        dev_dependency_count=_dependency_object_size(payload.get("devDependencies")),
+        optional_dependency_count=_dependency_object_size(payload.get("optionalDependencies")),
+    )
+
+
+def _dependency_object_size(value: object) -> int:
+    if isinstance(value, dict):
+        return len(value)
+    return 0
+
+
+def _requirements_dependency_summary(text: str) -> DependencySummary:
+    dependency_count = 0
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith(("-", "http://", "https://", "git+")):
+            continue
+        dependency_count += 1
+
+    return DependencySummary(
+        parsed=True,
+        dependency_count=dependency_count,
+        dev_dependency_count=0,
+        optional_dependency_count=0,
+    )
 
 
 def _days_since(value: dt.datetime | None, now: dt.datetime) -> int | None:

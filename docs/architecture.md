@@ -20,7 +20,7 @@ GitHub pagination is bounded per endpoint to keep CLI runtime predictable. Commi
 
 Rate-limit headers are captured during API access and attached to metrics as API budget metadata. JSON output exposes the budget directly, while text output only warns when remaining requests are low.
 
-Package manifest detection uses the GitHub Contents API for root-level files on the repository default branch. It records ecosystem/package-manager metadata only; dependency parsing is a future separation point.
+Package manifest detection uses the GitHub Contents API for root-level files on the repository default branch. Dependency count parsing is intentionally shallow and currently covers `package.json` through `json` and `requirements.txt` through simple line filtering. Unsupported manifests are still returned with a `parsed: false` summary so callers can distinguish unparsed metadata from missing manifests.
 
 Scoring is intentionally explainable. Avoid opaque models until the project has clear validation data and a documented evaluation process.
 
@@ -29,5 +29,5 @@ GitHub error handling should return actionable CLI messages. Avoid exposing raw 
 ## Future Separation Points
 
 - richer maintainer identity/contributor analysis beyond recent commit authors
-- dependency parsing for supported package ecosystems
+- richer dependency parsing for more package ecosystems
 - web or browser extension frontend

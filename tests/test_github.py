@@ -10,8 +10,10 @@ from gitmaintainer.github import (
     _JsonResponse,
     _bus_factor,
     _first_non_author_comment,
+    _package_json_dependency_summary,
     _package_manifests_from_contents,
     _parse_link_header,
+    _requirements_dependency_summary,
     _with_per_page,
 )
 
@@ -118,7 +120,28 @@ def test_package_manifest_detection_uses_known_root_files_only() -> None:
     assert [(manifest.path, manifest.ecosystem, manifest.package_manager) for manifest in manifests] == [
         ("pyproject.toml", "Python", None),
         ("package.json", "JavaScript", "npm"),
+        ("requirements.txt", "Python", "pip"),
     ]
+    assert manifests[0].dependency_summary is not None
+    assert manifests[0].dependency_summary.parsed is False
+
+
+def test_package_json_dependency_summary_counts_dependency_groups() -> None:
+    summary = _package_json_dependency_summary((FIXTURES / "package.json").read_text())
+
+    assert summary.parsed is True
+    assert summary.dependency_count == 2
+    assert summary.dev_dependency_count == 1
+    assert summary.optional_dependency_count == 1
+
+
+def test_requirements_dependency_summary_counts_requirement_lines() -> None:
+    summary = _requirements_dependency_summary((FIXTURES / "requirements.txt").read_text())
+
+    assert summary.parsed is True
+    assert summary.dependency_count == 2
+    assert summary.dev_dependency_count == 0
+    assert summary.optional_dependency_count == 0
 
 
 def test_metrics_are_extracted_from_github_api_fixtures() -> None:
@@ -167,6 +190,14 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
         raise AssertionError(f"unexpected URL: {url}")
 
     client._request_json = request_json  # type: ignore[method-assign]
+    client._get_text_url = lambda url: {  # type: ignore[method-assign]
+        "https://raw.example/octo/widget/main/package.json": (
+            FIXTURES / "package.json"
+        ).read_text(),
+        "https://raw.example/octo/widget/main/requirements.txt": (
+            FIXTURES / "requirements.txt"
+        ).read_text(),
+    }[url]
 
     metrics = client.metrics("octo", "widget")
 
@@ -187,7 +218,14 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
     ] == [
         ("pyproject.toml", "Python", None),
         ("package.json", "JavaScript", "npm"),
+        ("requirements.txt", "Python", "pip"),
     ]
+    summaries = [manifest.dependency_summary for manifest in metrics.package_manifests]
+    assert summaries[0] is not None and summaries[0].parsed is False
+    assert summaries[1] is not None and summaries[1].dependency_count == 2
+    assert summaries[1] is not None and summaries[1].dev_dependency_count == 1
+    assert summaries[1] is not None and summaries[1].optional_dependency_count == 1
+    assert summaries[2] is not None and summaries[2].dependency_count == 2
     assert metrics.api_budget is not None
     assert metrics.api_budget.limit == 5000
     assert metrics.api_budget.remaining == 4991
