@@ -7,6 +7,7 @@
 - Add bounded GitHub pagination and API budget metadata in JSON output.
 - Add GitHub API fixtures for deterministic metric extraction tests.
 - Add package manifest metadata for dependency-review context.
+- Add package build verification for release readiness.
 
 ## 0.1.0
 
