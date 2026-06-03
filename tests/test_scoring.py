@@ -6,6 +6,9 @@ def test_scores_active_repository() -> None:
     metrics = RepoMetrics(
         owner="owner",
         name="repo",
+        default_branch="main",
+        is_archived=False,
+        is_fork=False,
         latest_commit_days=5,
         latest_release_days=30,
         median_issue_response_hours=12,
@@ -24,6 +27,9 @@ def test_scores_abandoned_repository() -> None:
     metrics = RepoMetrics(
         owner="owner",
         name="repo",
+        default_branch="main",
+        is_archived=False,
+        is_fork=False,
         latest_commit_days=900,
         latest_release_days=1200,
         median_issue_response_hours=24 * 90,
@@ -36,3 +42,24 @@ def test_scores_abandoned_repository() -> None:
 
     assert result.status == "Abandoned"
     assert result.score < 35
+
+
+def test_archived_repository_is_risky_even_with_recent_activity() -> None:
+    metrics = RepoMetrics(
+        owner="owner",
+        name="repo",
+        default_branch="main",
+        is_archived=True,
+        is_fork=False,
+        latest_commit_days=5,
+        latest_release_days=30,
+        median_issue_response_hours=12,
+        oldest_open_pr_days=None,
+        open_pr_count=0,
+        bus_factor_estimate=3,
+    )
+
+    result = score_repository(metrics)
+
+    assert result.status == "Risky"
+    assert "Repository is archived" in result.reasons

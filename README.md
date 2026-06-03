@@ -55,11 +55,12 @@ GITHUB_TOKEN=ghp_... gitmaintainer pallets/flask
 
 GitMaintainer combines:
 
+- repository metadata such as default branch, archived status, and fork status
 - days since the latest commit
 - days since the latest release
 - median issue response time
 - age of open pull requests
-- contributor concentration as a bus-factor-ish estimate
+- recent commit author concentration as a bus-factor-ish estimate
 
 The score is intentionally explainable and conservative. It should guide human review, not replace it.
 

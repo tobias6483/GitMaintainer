@@ -7,6 +7,9 @@ from dataclasses import dataclass
 class RepoMetrics:
     owner: str
     name: str
+    default_branch: str | None
+    is_archived: bool
+    is_fork: bool
     latest_commit_days: int | None
     latest_release_days: int | None
     median_issue_response_hours: float | None

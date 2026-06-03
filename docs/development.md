@@ -35,3 +35,4 @@ python -m pytest
 - Check JSON output is valid.
 - Check badge output is Markdown.
 - Check at least one popular public repository through the live GitHub API.
+- Check a missing repository returns an actionable 404 message.

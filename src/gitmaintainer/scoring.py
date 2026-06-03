@@ -7,6 +7,14 @@ def score_repository(metrics: RepoMetrics) -> ScoreResult:
     score = 100
     reasons: list[str] = []
 
+    if metrics.is_archived:
+        score -= 60
+        reasons.append("Repository is archived")
+
+    if metrics.is_fork:
+        score -= 5
+        reasons.append("Repository is a fork")
+
     score -= _age_penalty(
         metrics.latest_commit_days,
         [(30, 0), (90, 10), (180, 25), (365, 45)],
@@ -40,7 +48,7 @@ def score_repository(metrics: RepoMetrics) -> ScoreResult:
 
     if metrics.bus_factor_estimate is not None and metrics.bus_factor_estimate <= 1:
         score -= 10
-        reasons.append("Recent activity appears concentrated in one maintainer")
+        reasons.append("Recent commits appear concentrated in one maintainer")
 
     score = max(0, min(100, score))
     if score >= 80:

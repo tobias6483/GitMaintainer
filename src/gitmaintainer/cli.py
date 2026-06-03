@@ -48,6 +48,9 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"GitMaintainer: {owner}/{repo}")
         print(f"Status: {result.status} ({result.score}/100)")
+        print(f"Default branch: {metrics.default_branch or 'unknown'}")
+        print(f"Archived: {'yes' if metrics.is_archived else 'no'}")
+        print(f"Fork: {'yes' if metrics.is_fork else 'no'}")
         print(f"Last commit: {_days(metrics.latest_commit_days)}")
         print(f"Last release: {_days(metrics.latest_release_days)}")
         print(f"Median issue response: {_hours(metrics.median_issue_response_hours)}")
@@ -63,6 +66,9 @@ def main(argv: list[str] | None = None) -> int:
 
 def _metrics_dict(metrics: RepoMetrics) -> dict[str, object]:
     return {
+        "default_branch": metrics.default_branch,
+        "is_archived": metrics.is_archived,
+        "is_fork": metrics.is_fork,
         "latest_commit_days": metrics.latest_commit_days,
         "latest_release_days": metrics.latest_release_days,
         "median_issue_response_hours": metrics.median_issue_response_hours,

@@ -6,7 +6,7 @@ import os
 from collections import Counter
 from statistics import median
 from urllib.error import HTTPError
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 from .models import RepoMetrics
@@ -20,6 +20,8 @@ class GitHubError(RuntimeError):
 
 def parse_repo(value: str) -> tuple[str, str]:
     cleaned = value.strip().removesuffix(".git").rstrip("/")
+    if cleaned.startswith("git@github.com:"):
+        cleaned = cleaned.removeprefix("git@github.com:")
     if cleaned.startswith("https://github.com/"):
         cleaned = cleaned.removeprefix("https://github.com/")
     elif cleaned.startswith("http://github.com/"):
@@ -41,23 +43,26 @@ class GitHubClient:
         now = dt.datetime.now(dt.timezone.utc)
         repo_path = f"/repos/{quote(owner)}/{quote(repo)}"
 
+        repository = self._get_object(repo_path)
         commits = self._get(f"{repo_path}/commits?per_page=30")
         releases = self._get(f"{repo_path}/releases?per_page=1")
         issues = self._get(
             f"{repo_path}/issues?state=all&per_page=30&sort=created&direction=desc"
         )
         pulls = self._get(f"{repo_path}/pulls?state=open&per_page=30&sort=created&direction=asc")
-        contributors = self._get(f"{repo_path}/contributors?per_page=20")
 
         latest_commit_days = _days_since(_latest_commit_at(commits), now)
         latest_release_days = _days_since(_latest_release_at(releases), now)
         issue_response = self._median_issue_response_hours(issues)
         oldest_pr_days = _oldest_pr_age_days(pulls, now)
-        bus_factor = _bus_factor(contributors)
+        bus_factor = _bus_factor(commits)
 
         return RepoMetrics(
             owner=owner,
             name=repo,
+            default_branch=repository.get("default_branch"),
+            is_archived=bool(repository.get("archived")),
+            is_fork=bool(repository.get("fork")),
             latest_commit_days=latest_commit_days,
             latest_release_days=latest_release_days,
             median_issue_response_hours=issue_response,
@@ -69,7 +74,19 @@ class GitHubClient:
     def _get(self, path: str) -> list[dict]:
         return self._get_url(f"{GITHUB_API}{path}")
 
+    def _get_object(self, path: str) -> dict:
+        payload = self._get_json(f"{GITHUB_API}{path}")
+        if isinstance(payload, dict):
+            return payload
+        raise GitHubError("GitHub API returned an unexpected response")
+
     def _get_url(self, url: str) -> list[dict]:
+        payload = self._get_json(url)
+        if isinstance(payload, list):
+            return payload
+        raise GitHubError("GitHub API returned an unexpected response")
+
+    def _get_json(self, url: str) -> object:
         request = Request(url)
         request.add_header("Accept", "application/vnd.github+json")
         request.add_header("X-GitHub-Api-Version", "2022-11-28")
@@ -78,14 +95,9 @@ class GitHubClient:
 
         try:
             with urlopen(request, timeout=20) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+                return json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
-            details = error.read().decode("utf-8", errors="replace")
-            raise GitHubError(f"GitHub API request failed: {error.code} {details}") from error
-
-        if isinstance(payload, list):
-            return payload
-        raise GitHubError("GitHub API returned an unexpected response")
+            raise GitHubError(_http_error_message(error, url)) from error
 
     def _median_issue_response_hours(self, issues: list[dict]) -> float | None:
         response_times: list[float] = []
@@ -99,7 +111,7 @@ class GitHubClient:
             if not created or not author or not comments_url:
                 continue
 
-            comments = self._get_url(f"{comments_url}?per_page=30")
+            comments = self._get_url(_with_per_page(comments_url, 30))
             first_response = _first_non_author_comment(comments, author)
             if first_response:
                 response_times.append((first_response - created).total_seconds() / 3600)
@@ -141,15 +153,29 @@ def _oldest_pr_age_days(pulls: list[dict], now: dt.datetime) -> int | None:
     return _days_since(min(created_values), now)
 
 
-def _bus_factor(contributors: list[dict]) -> int | None:
-    if not contributors:
+def _bus_factor(commits: list[dict]) -> int | None:
+    if not commits:
         return None
-    counts = Counter(
-        contributor.get("login")
-        for contributor in contributors
-        if contributor.get("login") and contributor.get("contributions")
-    )
-    return len(counts) or None
+
+    counts = Counter(author for author in (_commit_author(commit) for commit in commits) if author)
+    if not counts:
+        return None
+
+    total = sum(counts.values())
+    covered = 0
+    for index, count in enumerate(sorted(counts.values(), reverse=True), start=1):
+        covered += count
+        if covered / total >= 0.8:
+            return index
+    return len(counts)
+
+
+def _commit_author(commit: dict) -> str | None:
+    author = commit.get("author") or {}
+    login = author.get("login")
+    if login:
+        return login
+    return commit.get("commit", {}).get("author", {}).get("email")
 
 
 def _days_since(value: dt.datetime | None, now: dt.datetime) -> int | None:
@@ -162,3 +188,37 @@ def _parse_time(value: str | None) -> dt.datetime | None:
     if not value:
         return None
     return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _with_per_page(url: str, per_page: int) -> str:
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}per_page={per_page}"
+
+
+def _http_error_message(error: HTTPError, url: str) -> str:
+    body = error.read().decode("utf-8", errors="replace")
+    message = _github_message(body)
+    path = urlparse(url).path
+
+    if error.code == 404:
+        return f"Repository or endpoint not found: {path}"
+    if error.code in {401, 403} and "rate limit" in message.lower():
+        return "GitHub API rate limit exceeded. Set GITHUB_TOKEN or pass --token."
+    if error.code == 401:
+        return "GitHub API authentication failed. Check GITHUB_TOKEN or --token."
+    if error.code == 403:
+        return f"GitHub API request forbidden: {message or path}"
+    return f"GitHub API request failed ({error.code}): {message or path}"
+
+
+def _github_message(body: str) -> str:
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        return body.strip()
+
+    if isinstance(payload, dict):
+        message = payload.get("message")
+        if isinstance(message, str):
+            return message
+    return body.strip()
