@@ -1,6 +1,11 @@
+import datetime as dt
+import json
 from email.message import Message
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from gitmaintainer.github import (
+    GITHUB_API,
     GitHubClient,
     _JsonResponse,
     _bus_factor,
@@ -8,6 +13,12 @@ from gitmaintainer.github import (
     _parse_link_header,
     _with_per_page,
 )
+
+FIXTURES = Path(__file__).parent / "fixtures" / "github"
+
+
+def _fixture(name: str) -> object:
+    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
 
 
 def test_bus_factor_estimates_authors_needed_for_80_percent_of_recent_commits() -> None:
@@ -98,3 +109,66 @@ def test_rate_limit_headers_are_recorded_as_lowest_remaining_budget() -> None:
     assert client._api_budget.limit == 5000
     assert client._api_budget.remaining == 42
     assert client._api_budget.reset_at == "2026-01-01T00:00:00Z"
+
+
+def test_metrics_are_extracted_from_github_api_fixtures() -> None:
+    client = GitHubClient(
+        token="token",
+        clock=lambda: dt.datetime(2026, 6, 3, 12, tzinfo=dt.timezone.utc),
+    )
+    calls: list[str] = []
+
+    def request_json(url: str) -> _JsonResponse:
+        calls.append(url)
+        headers = Message()
+        headers["X-RateLimit-Limit"] = "5000"
+        headers["X-RateLimit-Remaining"] = str(5000 - len(calls))
+        headers["X-RateLimit-Reset"] = "1767225600"
+        client._record_rate_limit(headers)
+
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query)
+
+        if parsed.path == "/repos/octo/widget":
+            return _JsonResponse(payload=_fixture("repository.json"), headers=headers)
+        if parsed.path == "/repos/octo/widget/commits":
+            page = query.get("page", ["1"])[0]
+            if page == "1":
+                headers["Link"] = (
+                    f"<{GITHUB_API}/repos/octo/widget/commits?per_page=30&page=2>; "
+                    'rel="next"'
+                )
+                return _JsonResponse(payload=_fixture("commits_page_1.json"), headers=headers)
+            return _JsonResponse(payload=_fixture("commits_page_2.json"), headers=headers)
+        if parsed.path == "/repos/octo/widget/releases":
+            return _JsonResponse(payload=_fixture("releases.json"), headers=headers)
+        if parsed.path == "/repos/octo/widget/issues":
+            return _JsonResponse(payload=_fixture("issues.json"), headers=headers)
+        if parsed.path == "/repos/octo/widget/pulls":
+            return _JsonResponse(payload=_fixture("pulls.json"), headers=headers)
+        if parsed.path == "/repos/octo/widget/issues/1/comments":
+            return _JsonResponse(payload=_fixture("comments_issue_1.json"), headers=headers)
+        if parsed.path == "/repos/octo/widget/issues/2/comments":
+            return _JsonResponse(payload=_fixture("comments_issue_2.json"), headers=headers)
+
+        raise AssertionError(f"unexpected URL: {url}")
+
+    client._request_json = request_json  # type: ignore[method-assign]
+
+    metrics = client.metrics("octo", "widget")
+
+    assert metrics.owner == "octo"
+    assert metrics.name == "widget"
+    assert metrics.default_branch == "main"
+    assert metrics.is_archived is False
+    assert metrics.is_fork is False
+    assert metrics.latest_commit_days == 2
+    assert metrics.latest_release_days == 14
+    assert metrics.median_issue_response_hours == 30
+    assert metrics.oldest_open_pr_days == 40
+    assert metrics.open_pr_count == 2
+    assert metrics.bus_factor_estimate == 2
+    assert metrics.api_budget is not None
+    assert metrics.api_budget.limit == 5000
+    assert metrics.api_budget.remaining == 4992
+    assert metrics.api_budget.reset_at == "2026-01-01T00:00:00Z"

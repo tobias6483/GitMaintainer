@@ -1,0 +1,23 @@
+[
+  {
+    "author": {"login": "alice"},
+    "commit": {
+      "committer": {"date": "2026-06-01T12:00:00Z"},
+      "author": {"email": "alice@example.com"}
+    }
+  },
+  {
+    "author": {"login": "alice"},
+    "commit": {
+      "committer": {"date": "2026-05-31T12:00:00Z"},
+      "author": {"email": "alice@example.com"}
+    }
+  },
+  {
+    "author": {"login": "bob"},
+    "commit": {
+      "committer": {"date": "2026-05-30T12:00:00Z"},
+      "author": {"email": "bob@example.com"}
+    }
+  }
+]

@@ -29,6 +29,9 @@ Set `GITHUB_TOKEN` for higher GitHub API limits.
 python -m pytest
 ```
 
+GitHub metric extraction tests use local JSON fixtures under `tests/fixtures/github/`.
+Keep fixtures small, representative, and free of tokens or private repository data.
+
 ## Manual QA
 
 - Check invalid input returns exit code `2`.

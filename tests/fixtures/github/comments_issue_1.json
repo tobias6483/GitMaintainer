@@ -1,0 +1,10 @@
+[
+  {
+    "created_at": "2026-05-01T13:00:00Z",
+    "user": {"login": "reporter"}
+  },
+  {
+    "created_at": "2026-05-02T00:00:00Z",
+    "user": {"login": "maintainer"}
+  }
+]
