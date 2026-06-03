@@ -64,6 +64,8 @@ GitMaintainer combines:
 
 The score is intentionally explainable and conservative. It should guide human review, not replace it.
 
+GitMaintainer follows GitHub pagination for sampled activity endpoints with bounded page caps so CLI runs stay predictable. JSON output includes the observed GitHub API budget, and text output warns only when the remaining budget is low.
+
 ## Privacy
 
 GitMaintainer reads public GitHub API data and prints results locally. It does not store repository data, tokens, analytics, or telemetry. See `PRIVACY.md`.

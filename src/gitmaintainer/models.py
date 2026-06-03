@@ -4,6 +4,13 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
+class ApiBudget:
+    limit: int | None
+    remaining: int | None
+    reset_at: str | None
+
+
+@dataclass(frozen=True)
 class RepoMetrics:
     owner: str
     name: str
@@ -16,6 +23,7 @@ class RepoMetrics:
     oldest_open_pr_days: int | None
     open_pr_count: int
     bus_factor_estimate: int | None
+    api_budget: ApiBudget | None = None
 
 
 @dataclass(frozen=True)

@@ -4,18 +4,26 @@ import datetime as dt
 import json
 import os
 from collections import Counter
+from dataclasses import dataclass
+from email.message import Message
 from statistics import median
 from urllib.error import HTTPError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
-from .models import RepoMetrics
+from .models import ApiBudget, RepoMetrics
 
 GITHUB_API = "https://api.github.com"
 
 
 class GitHubError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class _JsonResponse:
+    payload: object
+    headers: Message
 
 
 def parse_repo(value: str) -> tuple[str, str]:
@@ -38,18 +46,23 @@ def parse_repo(value: str) -> tuple[str, str]:
 class GitHubClient:
     def __init__(self, token: str | None = None) -> None:
         self.token = token or os.environ.get("GITHUB_TOKEN")
+        self._api_budget: ApiBudget | None = None
 
     def metrics(self, owner: str, repo: str) -> RepoMetrics:
         now = dt.datetime.now(dt.timezone.utc)
         repo_path = f"/repos/{quote(owner)}/{quote(repo)}"
 
         repository = self._get_object(repo_path)
-        commits = self._get(f"{repo_path}/commits?per_page=30")
+        commits = self._get_paginated(f"{repo_path}/commits?per_page=30", max_pages=3)
         releases = self._get(f"{repo_path}/releases?per_page=1")
-        issues = self._get(
-            f"{repo_path}/issues?state=all&per_page=30&sort=created&direction=desc"
+        issues = self._get_paginated(
+            f"{repo_path}/issues?state=all&per_page=30&sort=created&direction=desc",
+            max_pages=2,
         )
-        pulls = self._get(f"{repo_path}/pulls?state=open&per_page=30&sort=created&direction=asc")
+        pulls = self._get_paginated(
+            f"{repo_path}/pulls?state=open&per_page=30&sort=created&direction=asc",
+            max_pages=2,
+        )
 
         latest_commit_days = _days_since(_latest_commit_at(commits), now)
         latest_release_days = _days_since(_latest_release_at(releases), now)
@@ -69,10 +82,14 @@ class GitHubClient:
             oldest_open_pr_days=oldest_pr_days,
             open_pr_count=len(pulls),
             bus_factor_estimate=bus_factor,
+            api_budget=self._api_budget,
         )
 
     def _get(self, path: str) -> list[dict]:
         return self._get_url(f"{GITHUB_API}{path}")
+
+    def _get_paginated(self, path: str, max_pages: int) -> list[dict]:
+        return self._get_url_paginated(f"{GITHUB_API}{path}", max_pages=max_pages)
 
     def _get_object(self, path: str) -> dict:
         payload = self._get_json(f"{GITHUB_API}{path}")
@@ -86,7 +103,26 @@ class GitHubClient:
             return payload
         raise GitHubError("GitHub API returned an unexpected response")
 
+    def _get_url_paginated(self, url: str, max_pages: int) -> list[dict]:
+        if max_pages < 1:
+            raise ValueError("max_pages must be at least 1")
+
+        items: list[dict] = []
+        next_url: str | None = url
+        pages = 0
+        while next_url and pages < max_pages:
+            response = self._request_json(next_url)
+            if not isinstance(response.payload, list):
+                raise GitHubError("GitHub API returned an unexpected response")
+            items.extend(response.payload)
+            pages += 1
+            next_url = _next_link(response.headers.get("Link"))
+        return items
+
     def _get_json(self, url: str) -> object:
+        return self._request_json(url).payload
+
+    def _request_json(self, url: str) -> _JsonResponse:
         request = Request(url)
         request.add_header("Accept", "application/vnd.github+json")
         request.add_header("X-GitHub-Api-Version", "2022-11-28")
@@ -95,9 +131,32 @@ class GitHubClient:
 
         try:
             with urlopen(request, timeout=20) as response:
-                return json.loads(response.read().decode("utf-8"))
+                headers = response.headers
+                self._record_rate_limit(headers)
+                payload = json.loads(response.read().decode("utf-8"))
+                return _JsonResponse(payload=payload, headers=headers)
         except HTTPError as error:
             raise GitHubError(_http_error_message(error, url)) from error
+
+    def _record_rate_limit(self, headers: Message) -> None:
+        limit = _parse_int(headers.get("X-RateLimit-Limit"))
+        remaining = _parse_int(headers.get("X-RateLimit-Remaining"))
+        reset_at = _reset_at(headers.get("X-RateLimit-Reset"))
+
+        if limit is None and remaining is None and reset_at is None:
+            return
+
+        if self._api_budget is None:
+            self._api_budget = ApiBudget(limit=limit, remaining=remaining, reset_at=reset_at)
+            return
+
+        current = self._api_budget
+        lowest_remaining = _min_known(current.remaining, remaining)
+        self._api_budget = ApiBudget(
+            limit=limit if limit is not None else current.limit,
+            remaining=lowest_remaining,
+            reset_at=reset_at or current.reset_at,
+        )
 
     def _median_issue_response_hours(self, issues: list[dict]) -> float | None:
         response_times: list[float] = []
@@ -193,6 +252,58 @@ def _parse_time(value: str | None) -> dt.datetime | None:
 def _with_per_page(url: str, per_page: int) -> str:
     separator = "&" if "?" in url else "?"
     return f"{url}{separator}per_page={per_page}"
+
+
+def _next_link(value: str | None) -> str | None:
+    links = _parse_link_header(value)
+    return links.get("next")
+
+
+def _parse_link_header(value: str | None) -> dict[str, str]:
+    if not value:
+        return {}
+
+    links: dict[str, str] = {}
+    for part in value.split(","):
+        section = part.strip()
+        if not section.startswith("<") or ">;" not in section:
+            continue
+
+        url, params = section[1:].split(">;", 1)
+        rel = None
+        for param in params.split(";"):
+            key, _, raw = param.strip().partition("=")
+            if key == "rel":
+                rel = raw.strip('"')
+                break
+        if rel:
+            links[rel] = url
+    return links
+
+
+def _parse_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def _reset_at(value: str | None) -> str | None:
+    timestamp = _parse_int(value)
+    if timestamp is None:
+        return None
+    reset = dt.datetime.fromtimestamp(timestamp, tz=dt.timezone.utc)
+    return reset.isoformat().replace("+00:00", "Z")
+
+
+def _min_known(current: int | None, candidate: int | None) -> int | None:
+    if current is None:
+        return candidate
+    if candidate is None:
+        return current
+    return min(current, candidate)
 
 
 def _http_error_message(error: HTTPError, url: str) -> str:
