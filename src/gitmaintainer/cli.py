@@ -6,7 +6,7 @@ import sys
 
 from .badge import badge_markdown
 from .github import GitHubClient, GitHubError, parse_repo
-from .models import RepoMetrics
+from .models import ApiBudget, RepoMetrics
 from .scoring import score_repository
 
 
@@ -40,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
                     "status": result.status,
                     "score": result.score,
                     "metrics": _metrics_dict(metrics),
+                    "api_budget": _api_budget_dict(metrics.api_budget),
                     "reasons": list(result.reasons),
                 },
                 indent=2,
@@ -57,6 +58,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Open PRs: {metrics.open_pr_count}")
         print(f"Oldest open PR: {_days(metrics.oldest_open_pr_days)}")
         print(f"Bus factor-ish estimate: {metrics.bus_factor_estimate or 'unknown'}")
+        warning = _api_budget_warning(metrics.api_budget)
+        if warning:
+            print(f"GitHub API budget: {warning}")
         print("Reasons:")
         for reason in result.reasons:
             print(f"- {reason}")
@@ -76,6 +80,28 @@ def _metrics_dict(metrics: RepoMetrics) -> dict[str, object]:
         "open_pr_count": metrics.open_pr_count,
         "bus_factor_estimate": metrics.bus_factor_estimate,
     }
+
+
+def _api_budget_dict(api_budget: ApiBudget | None) -> dict[str, object] | None:
+    if api_budget is None:
+        return None
+    return {
+        "limit": api_budget.limit,
+        "remaining": api_budget.remaining,
+        "reset_at": api_budget.reset_at,
+    }
+
+
+def _api_budget_warning(api_budget: ApiBudget | None) -> str | None:
+    if api_budget is None or api_budget.limit is None or api_budget.remaining is None:
+        return None
+    if api_budget.limit <= 0:
+        return None
+    if api_budget.remaining > 60 and api_budget.remaining / api_budget.limit > 0.1:
+        return None
+
+    reset = f"; resets at {api_budget.reset_at}" if api_budget.reset_at else ""
+    return f"low ({api_budget.remaining}/{api_budget.limit} remaining{reset})"
 
 
 def _days(value: int | None) -> str:

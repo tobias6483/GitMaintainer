@@ -13,9 +13,10 @@
 | Badge generator for README | Implemented | Emits shields.io Markdown. |
 | Default branch and archived/fork context | Implemented | Included in output and scoring. |
 | Actionable API errors | Implemented | Rate-limit, auth, forbidden, and 404 errors are summarized. |
+| Bounded API pagination | Implemented | Samples multiple pages for commits, issues, and open PRs without unbounded CLI runtime. |
+| Rate-limit budget reporting | Implemented | JSON includes the observed GitHub API budget; text output warns when remaining budget is low. |
 
 ## Planned Improvements
 
 - Add package manager metadata for dependency-oriented checks.
-- Add pagination and rate-limit budget reporting for larger repositories.
 - Add browser extension or web UI after CLI scoring stabilizes.
