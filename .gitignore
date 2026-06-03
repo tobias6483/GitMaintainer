@@ -1,0 +1,23 @@
+# Local project planning
+project.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment and local tooling
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/

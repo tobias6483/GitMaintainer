@@ -1,0 +1,17 @@
+name: Feature request
+description: Suggest a new signal, output mode, or integration.
+title: "Feature: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should GitMaintainer do?
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why?
+      description: Who benefits, and how would they use it?

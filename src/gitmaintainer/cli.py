@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+
+from .badge import badge_markdown
+from .github import GitHubClient, GitHubError, parse_repo
+from .models import RepoMetrics
+from .scoring import score_repository
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="gitmaintainer",
+        description="Estimate whether a GitHub repository is actively maintained.",
+    )
+    parser.add_argument("repository", help="Repository as owner/repo or github.com/owner/repo")
+    parser.add_argument("--json", action="store_true", help="Print machine-readable JSON")
+    parser.add_argument("--badge", action="store_true", help="Print a shields.io badge snippet")
+    parser.add_argument("--token", help="GitHub token. Defaults to GITHUB_TOKEN.")
+    args = parser.parse_args(argv)
+
+    try:
+        owner, repo = parse_repo(args.repository)
+        metrics = GitHubClient(token=args.token).metrics(owner, repo)
+    except (GitHubError, ValueError) as error:
+        print(f"gitmaintainer: {error}", file=sys.stderr)
+        return 2
+
+    result = score_repository(metrics)
+
+    if args.badge:
+        print(badge_markdown(owner, repo, result.status))
+    elif args.json:
+        print(
+            json.dumps(
+                {
+                    "repository": f"{owner}/{repo}",
+                    "status": result.status,
+                    "score": result.score,
+                    "metrics": _metrics_dict(metrics),
+                    "reasons": list(result.reasons),
+                },
+                indent=2,
+            )
+        )
+    else:
+        print(f"GitMaintainer: {owner}/{repo}")
+        print(f"Status: {result.status} ({result.score}/100)")
+        print(f"Last commit: {_days(metrics.latest_commit_days)}")
+        print(f"Last release: {_days(metrics.latest_release_days)}")
+        print(f"Median issue response: {_hours(metrics.median_issue_response_hours)}")
+        print(f"Open PRs: {metrics.open_pr_count}")
+        print(f"Oldest open PR: {_days(metrics.oldest_open_pr_days)}")
+        print(f"Bus factor-ish estimate: {metrics.bus_factor_estimate or 'unknown'}")
+        print("Reasons:")
+        for reason in result.reasons:
+            print(f"- {reason}")
+
+    return 0
+
+
+def _metrics_dict(metrics: RepoMetrics) -> dict[str, object]:
+    return {
+        "latest_commit_days": metrics.latest_commit_days,
+        "latest_release_days": metrics.latest_release_days,
+        "median_issue_response_hours": metrics.median_issue_response_hours,
+        "oldest_open_pr_days": metrics.oldest_open_pr_days,
+        "open_pr_count": metrics.open_pr_count,
+        "bus_factor_estimate": metrics.bus_factor_estimate,
+    }
+
+
+def _days(value: int | None) -> str:
+    if value is None:
+        return "unknown"
+    if value == 0:
+        return "today"
+    return f"{value} days ago"
+
+
+def _hours(value: float | None) -> str:
+    if value is None:
+        return "unknown"
+    if value < 48:
+        return f"{value:.1f} hours"
+    return f"{value / 24:.1f} days"

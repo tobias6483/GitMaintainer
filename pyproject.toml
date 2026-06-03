@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gitmaintainer"
+version = "0.1.0"
+description = "CLI that estimates whether a GitHub repository is actively maintained."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Tobias" }]
+keywords = ["github", "maintenance", "oss", "cli", "dependencies"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+gitmaintainer = "gitmaintainer.cli:main"
+GitMaintainer = "gitmaintainer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/tobias6483/GitMaintainer"
+Issues = "https://github.com/tobias6483/GitMaintainer/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
