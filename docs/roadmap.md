@@ -13,13 +13,15 @@
 - JSON mode
 - Badge generator
 - Better rate-limit and API error messages
-- More test fixtures for scoring edge cases
+- More test fixtures for scoring and GitHub metric edge cases
+- Default branch, archived status, and fork status in reports
 
 ## Phase 2: Dependency Review Use Cases
 
 - Compare multiple repositories
 - Export reports
 - Package ecosystem metadata
+- Pagination and rate-limit budget reporting for larger dependency audits
 - Maintainer signal explanations suitable for README or audit reports
 
 ## Phase 3: Browser or Web Experience

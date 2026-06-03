@@ -16,9 +16,11 @@ GitHub API access is kept separate from scoring so metrics can later come from c
 
 Scoring is intentionally explainable. Avoid opaque models until the project has clear validation data and a documented evaluation process.
 
+GitHub error handling should return actionable CLI messages. Avoid exposing raw API JSON unless a debug mode is added.
+
 ## Future Separation Points
 
 - API pagination and rate-limit handling
-- richer maintainer identity/contributor analysis
+- richer maintainer identity/contributor analysis beyond recent commit authors
 - package ecosystem integrations
 - web or browser extension frontend
