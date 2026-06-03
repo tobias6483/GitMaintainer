@@ -1,0 +1,6 @@
+flask>=3
+requests
+
+# ignored
+-r dev-requirements.txt
+git+https://example.invalid/pkg.git

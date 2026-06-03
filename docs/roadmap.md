@@ -17,12 +17,13 @@
 - Default branch, archived status, and fork status in reports
 - Bounded pagination and GitHub API budget reporting
 - Root package manifest metadata
+- Dependency count summaries for npm and requirements files
 
 ## Phase 2: Dependency Review Use Cases
 
 - Compare multiple repositories
 - Export reports
-- Dependency-file parsing for supported package ecosystems
+- Dependency-file parsing for more package ecosystems
 - Larger dependency-audit sampling controls
 - Maintainer signal explanations suitable for README or audit reports
 

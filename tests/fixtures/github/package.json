@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "click": "^8.0.0",
+    "rich": "^13.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0"
+  },
+  "optionalDependencies": {
+    "fsevents": "^2.3.0"
+  }
+}

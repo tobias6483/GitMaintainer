@@ -8,6 +8,7 @@
 - Add GitHub API fixtures for deterministic metric extraction tests.
 - Add package manifest metadata for dependency-review context.
 - Add package build verification for release readiness.
+- Add dependency count summaries for `package.json` and `requirements.txt`.
 
 ## 0.1.0
 
