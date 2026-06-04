@@ -15,8 +15,16 @@ GitMaintainer is an early CLI MVP. The scoring model is explainable by design an
 
 ## Install
 
-GitMaintainer is preparing for its first pre-release. Until PyPI publication is
-configured, install from a local checkout:
+GitMaintainer publishes pre-release Python package artifacts on GitHub
+Releases. Download the latest `.whl` file from the release page, then install
+that local wheel:
+
+```sh
+python -m pip install gitmaintainer-X.Y.Z-py3-none-any.whl
+```
+
+The source archive is also attached for inspection or source-based installs.
+Until PyPI publication is configured, a local editable install is supported:
 
 ```sh
 python -m pip install -e .
@@ -100,10 +108,30 @@ GitMaintainer reads public GitHub API data and prints results locally. It does n
 
 ## Development
 
+Clone, build, and test from a fresh checkout:
+
 ```sh
+git clone https://github.com/tobias6483/GitMaintainer.git
+cd GitMaintainer
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
 python -m pytest
+python -m build
+```
+
+Run the CLI locally:
+
+```sh
 python -m gitmaintainer pallets/flask
 ```
+
+## Contributing
+
+Contributions should follow the focused branch and pull request flow in
+`CONTRIBUTING.md`. Run the documented checks before opening a PR, and call out
+privacy, security, or packaging impact when a change touches tokens, network
+access, persisted data, telemetry, hosted services, or release artifacts.
 
 ## License
 

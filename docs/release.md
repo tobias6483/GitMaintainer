@@ -11,6 +11,31 @@ explicitly opts into package ownership and configures Trusted Publishing.
 Do not upload to PyPI with an API token. Future PyPI publication should use
 Trusted Publishing from GitHub Actions.
 
+## User Installation From GitHub Releases
+
+GitHub pre-releases attach Python distribution artifacts:
+
+- a wheel, `gitmaintainer-X.Y.Z-py3-none-any.whl`, for normal installation
+- a source archive, `gitmaintainer-X.Y.Z.tar.gz`, for source inspection or
+  source-based installation
+
+Download the wheel from the release page and install it locally:
+
+```sh
+python -m pip install gitmaintainer-X.Y.Z-py3-none-any.whl
+```
+
+GitHub shows a `sha256:` digest for each release asset. To verify a downloaded
+artifact, compare GitHub's displayed digest with the local checksum:
+
+```sh
+shasum -a 256 gitmaintainer-X.Y.Z-py3-none-any.whl
+shasum -a 256 gitmaintainer-X.Y.Z.tar.gz
+```
+
+The checksum value should match the digest shown for the corresponding asset,
+without the `sha256:` prefix.
+
 ## Release Checklist
 
 1. Update `CHANGELOG.md`.
