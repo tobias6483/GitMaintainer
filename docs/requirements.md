@@ -17,10 +17,10 @@
 | Rate-limit budget reporting | Implemented | JSON includes the observed GitHub API budget; text output warns when remaining budget is low. |
 | GitHub API fixture coverage | Implemented | Metric extraction has deterministic fixture coverage for core repository, activity, response, PR, pagination, and budget signals. |
 | Package manifest metadata | Implemented | Detects known root package manifests such as `pyproject.toml`, `package.json`, `go.mod`, and `Cargo.toml`. |
-| Dependency count summaries | Partial | Parses counts for `package.json`, `requirements.txt`, `composer.json`, and `go.mod`; other manifests are reported without dependency parsing. |
+| Dependency count summaries | Partial | Parses counts for `package.json`, `requirements.txt`, `composer.json`, `go.mod`, and `Cargo.toml`; other manifests are reported without dependency parsing. |
 
 ## Planned Improvements
 
-- Add dependency-file parsing for more package ecosystems.
+- Add dependency-file parsing for more package ecosystems beyond npm, pip, Composer, Go modules, and Cargo.
 - Add PyPI publishing through Trusted Publishing after the GitHub pre-release.
 - Add browser extension or web UI after CLI scoring stabilizes.

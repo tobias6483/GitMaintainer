@@ -83,7 +83,7 @@ The score is intentionally explainable and conservative. It should guide human r
 GitMaintainer follows GitHub pagination for sampled activity endpoints with bounded page caps so CLI runs stay predictable. JSON output includes the observed GitHub API budget, and text output warns only when the remaining budget is low.
 
 Dependency count parsing currently covers `package.json`, `requirements.txt`,
-`composer.json`, and `go.mod`. Other supported manifests are reported as
+`composer.json`, `go.mod`, and `Cargo.toml`. Other supported manifests are reported as
 metadata without parsing their dependency lists yet.
 
 ## Privacy

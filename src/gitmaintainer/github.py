@@ -14,6 +14,11 @@ from urllib.request import Request, urlopen
 
 from .models import ApiBudget, DependencySummary, PackageManifest, RepoMetrics
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.10 in CI
+    tomllib = None
+
 GITHUB_API = "https://api.github.com"
 PACKAGE_MANIFESTS = {
     "package.json": ("JavaScript", "npm"),
@@ -329,7 +334,14 @@ def _dependency_summary(
     item: dict,
     fetch_text: Callable[[str], str] | None,
 ) -> DependencySummary | None:
-    if name not in {"package.json", "requirements.txt", "composer.json", "go.mod"}:
+    supported_manifests = {
+        "package.json",
+        "requirements.txt",
+        "composer.json",
+        "go.mod",
+        "Cargo.toml",
+    }
+    if name not in supported_manifests:
         return DependencySummary(parsed=False, note="Dependency parsing is not supported yet")
     if fetch_text is None:
         return None
@@ -349,7 +361,9 @@ def _dependency_summary(
         return _requirements_dependency_summary(text)
     if name == "composer.json":
         return _composer_json_dependency_summary(text)
-    return _go_mod_dependency_summary(text)
+    if name == "go.mod":
+        return _go_mod_dependency_summary(text)
+    return _cargo_toml_dependency_summary(text)
 
 
 def _package_json_dependency_summary(text: str) -> DependencySummary:
@@ -453,6 +467,111 @@ def _go_mod_require_count(text: str) -> int:
             dependency_count += 1
 
     return dependency_count
+
+
+def _cargo_toml_dependency_summary(text: str) -> DependencySummary:
+    if tomllib is None:
+        dependency_count, dev_dependency_count, optional_dependency_count = (
+            _cargo_toml_dependency_counts_from_text(text)
+        )
+    else:
+        try:
+            payload = tomllib.loads(text)
+        except tomllib.TOMLDecodeError:
+            return DependencySummary(parsed=False, note="Cargo.toml is invalid TOML")
+
+        if not isinstance(payload, dict):
+            return DependencySummary(parsed=False, note="Cargo.toml root is not an object")
+
+        dependency_count, dev_dependency_count, optional_dependency_count = (
+            _cargo_toml_dependency_counts(payload)
+        )
+
+    return DependencySummary(
+        parsed=True,
+        dependency_count=dependency_count,
+        dev_dependency_count=dev_dependency_count,
+        optional_dependency_count=optional_dependency_count,
+    )
+
+
+def _cargo_toml_dependency_counts(payload: dict) -> tuple[int, int, int]:
+    dependency_tables = [_dependency_object_size(payload.get("dependencies"))]
+    dev_dependency_tables = [_dependency_object_size(payload.get("dev-dependencies"))]
+    build_dependency_tables = [_dependency_object_size(payload.get("build-dependencies"))]
+    optional_dependency_count = _cargo_optional_dependency_count(payload.get("dependencies"))
+
+    target = payload.get("target")
+    if isinstance(target, dict):
+        for target_config in target.values():
+            if not isinstance(target_config, dict):
+                continue
+            dependency_tables.append(_dependency_object_size(target_config.get("dependencies")))
+            dev_dependency_tables.append(
+                _dependency_object_size(target_config.get("dev-dependencies"))
+            )
+            build_dependency_tables.append(
+                _dependency_object_size(target_config.get("build-dependencies"))
+            )
+            optional_dependency_count += _cargo_optional_dependency_count(
+                target_config.get("dependencies")
+            )
+
+    return (
+        sum(dependency_tables) + sum(build_dependency_tables),
+        sum(dev_dependency_tables),
+        optional_dependency_count,
+    )
+
+
+def _cargo_optional_dependency_count(value: object) -> int:
+    if not isinstance(value, dict):
+        return 0
+    return sum(
+        1
+        for dependency in value.values()
+        if isinstance(dependency, dict) and dependency.get("optional") is True
+    )
+
+
+def _cargo_toml_dependency_counts_from_text(text: str) -> tuple[int, int, int]:
+    dependency_count = 0
+    dev_dependency_count = 0
+    optional_dependency_count = 0
+    current_section: str | None = None
+
+    for raw_line in text.splitlines():
+        line = raw_line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current_section = line.strip("[]").strip()
+            continue
+        if "=" not in line or current_section is None:
+            continue
+
+        if _cargo_section_kind(current_section) == "dev":
+            dev_dependency_count += 1
+        elif _cargo_section_kind(current_section) == "runtime":
+            dependency_count += 1
+            if "optional" in line and "true" in line:
+                optional_dependency_count += 1
+
+    return dependency_count, dev_dependency_count, optional_dependency_count
+
+
+def _cargo_section_kind(section: str) -> str | None:
+    if section in {"dependencies", "build-dependencies"}:
+        return "runtime"
+    if section == "dev-dependencies":
+        return "dev"
+    if section.startswith("target.") and section.endswith(".dependencies"):
+        return "runtime"
+    if section.startswith("target.") and section.endswith(".build-dependencies"):
+        return "runtime"
+    if section.startswith("target.") and section.endswith(".dev-dependencies"):
+        return "dev"
+    return None
 
 
 def _days_since(value: dt.datetime | None, now: dt.datetime) -> int | None:

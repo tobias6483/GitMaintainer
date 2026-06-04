@@ -30,6 +30,12 @@
     "download_url": "https://raw.example/octo/widget/main/go.mod"
   },
   {
+    "name": "Cargo.toml",
+    "path": "Cargo.toml",
+    "type": "file",
+    "download_url": "https://raw.example/octo/widget/main/Cargo.toml"
+  },
+  {
     "name": "docs",
     "path": "docs",
     "type": "dir"
