@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- No unreleased changes yet.
+- Add dependency count summaries for `composer.json` and `go.mod`.
 
 ## 0.1.0
 
