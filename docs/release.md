@@ -43,24 +43,6 @@ gh release create vX.Y.Z dist/* \
 Verify the release page shows the pre-release marker, release notes, and both
 distribution artifacts from `dist/`.
 
-## Downloading Release Artifacts
-
-GitMaintainer release artifacts are Python packages, not a macOS app bundle.
-Download the source distribution and wheel from the GitHub release, then install
-the wheel with an isolated tool runner:
-
-```sh
-pipx install gitmaintainer-X.Y.Z-py3-none-any.whl
-gitmaintainer --version
-```
-
-If a release also publishes checksums, verify the downloaded files before
-installing them:
-
-```sh
-shasum -a 256 -c SHA256SUMS
-```
-
 ## Packaging Status
 
 The project has `pyproject.toml` metadata, console scripts, local package build verification, and a non-required CI package job. Automated PyPI publication is not configured yet.

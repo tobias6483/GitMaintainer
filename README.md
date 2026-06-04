@@ -13,7 +13,7 @@ It inspects public GitHub activity and reports a maintenance status:
 
 GitMaintainer is an early CLI MVP. The scoring model is explainable by design and will change as signals improve.
 
-## Download And Install
+## Install
 
 GitMaintainer is preparing for its first pre-release. Until PyPI publication is
 configured, install from a local checkout:
@@ -22,48 +22,18 @@ configured, install from a local checkout:
 python -m pip install -e .
 ```
 
-When GitHub pre-release artifacts are published, download the source
-distribution and wheel from the release page. Install the wheel in an isolated
-tool environment:
-
-```sh
-pipx install gitmaintainer-0.1.1-py3-none-any.whl
-```
-
 After PyPI publication:
 
 ```sh
 pipx install gitmaintainer
 ```
 
-## Clone, Build, And Test
-
-Clone the repository and create a local development environment:
+For local development:
 
 ```sh
-git clone https://github.com/tobias6483/GitMaintainer.git
-cd GitMaintainer
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
-```
-
-Run the test suite:
-
-```sh
-python -m pytest
-```
-
-Build local package artifacts:
-
-```sh
-python -m build
-```
-
-Run the CLI from the checkout:
-
-```sh
-python -m gitmaintainer pallets/flask
 ```
 
 ## Usage
@@ -128,27 +98,12 @@ GitMaintainer reads public GitHub API data and prints results locally. It does n
 - `docs/roadmap.md`
 - `docs/release.md`
 
-## Contribution Flow
+## Development
 
-Contributions should use the normal fork-based GitHub pull request flow:
-
-1. Fork the repository.
-2. Clone your fork.
-3. Create a focused branch.
-4. Build and test locally with `python -m pytest`.
-5. Open a pull request against `tobias6483/GitMaintainer:main`.
-
-Maintainers and project agents with write access should still use a branch and
-pull request. Required checks are listed in [AGENTS.md](AGENTS.md), and release
-or packaging changes should also run `python -m build`.
-
-Use GitHub issues for bugs, support, feature requests, and documentation gaps.
-Report security-sensitive issues privately as described in [SECURITY.md](SECURITY.md).
-Changes that add tokens, persistence, telemetry, hosted services, or new network
-destinations need privacy and security review against [PRIVACY.md](PRIVACY.md)
-and [SECURITY.md](SECURITY.md).
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor expectations.
+```sh
+python -m pytest
+python -m gitmaintainer pallets/flask
+```
 
 ## License
 
