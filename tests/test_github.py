@@ -4,11 +4,13 @@ from email.message import Message
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from gitmaintainer import github as github_module
 from gitmaintainer.github import (
     GITHUB_API,
     GitHubClient,
     _JsonResponse,
     _bus_factor,
+    _cargo_toml_dependency_summary,
     _composer_json_dependency_summary,
     _first_non_author_comment,
     _go_mod_dependency_summary,
@@ -125,6 +127,7 @@ def test_package_manifest_detection_uses_known_root_files_only() -> None:
         ("requirements.txt", "Python", "pip"),
         ("composer.json", "PHP", "Composer"),
         ("go.mod", "Go", "Go modules"),
+        ("Cargo.toml", "Rust", "Cargo"),
     ]
     assert manifests[0].dependency_summary is not None
     assert manifests[0].dependency_summary.parsed is False
@@ -164,6 +167,26 @@ def test_go_mod_dependency_summary_counts_single_and_block_requires() -> None:
     assert summary.dependency_count == 3
     assert summary.dev_dependency_count == 0
     assert summary.optional_dependency_count == 0
+
+
+def test_cargo_toml_dependency_summary_counts_dependency_groups() -> None:
+    summary = _cargo_toml_dependency_summary((FIXTURES / "Cargo.toml").read_text())
+
+    assert summary.parsed is True
+    assert summary.dependency_count == 4
+    assert summary.dev_dependency_count == 1
+    assert summary.optional_dependency_count == 1
+
+
+def test_cargo_toml_dependency_summary_counts_without_tomllib(monkeypatch) -> None:
+    monkeypatch.setattr(github_module, "tomllib", None)
+
+    summary = _cargo_toml_dependency_summary((FIXTURES / "Cargo.toml").read_text())
+
+    assert summary.parsed is True
+    assert summary.dependency_count == 4
+    assert summary.dev_dependency_count == 1
+    assert summary.optional_dependency_count == 1
 
 
 def test_metrics_are_extracted_from_github_api_fixtures() -> None:
@@ -225,6 +248,9 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
         "https://raw.example/octo/widget/main/go.mod": (
             FIXTURES / "go.mod"
         ).read_text(),
+        "https://raw.example/octo/widget/main/Cargo.toml": (
+            FIXTURES / "Cargo.toml"
+        ).read_text(),
     }[url]
 
     metrics = client.metrics("octo", "widget")
@@ -249,6 +275,7 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
         ("requirements.txt", "Python", "pip"),
         ("composer.json", "PHP", "Composer"),
         ("go.mod", "Go", "Go modules"),
+        ("Cargo.toml", "Rust", "Cargo"),
     ]
     summaries = [manifest.dependency_summary for manifest in metrics.package_manifests]
     assert summaries[0] is not None and summaries[0].parsed is False
@@ -259,6 +286,9 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
     assert summaries[3] is not None and summaries[3].dependency_count == 2
     assert summaries[3] is not None and summaries[3].dev_dependency_count == 1
     assert summaries[4] is not None and summaries[4].dependency_count == 3
+    assert summaries[5] is not None and summaries[5].dependency_count == 4
+    assert summaries[5] is not None and summaries[5].dev_dependency_count == 1
+    assert summaries[5] is not None and summaries[5].optional_dependency_count == 1
     assert metrics.api_budget is not None
     assert metrics.api_budget.limit == 5000
     assert metrics.api_budget.remaining == 4991
