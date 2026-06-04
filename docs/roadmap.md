@@ -18,6 +18,7 @@
 - Bounded pagination and GitHub API budget reporting
 - Root package manifest metadata
 - Dependency count summaries for npm and requirements files
+- GitHub pre-release for v0.1.0 with build-verified artifacts
 
 ## Phase 2: Dependency Review Use Cases
 
@@ -26,6 +27,7 @@
 - Dependency-file parsing for more package ecosystems
 - Larger dependency-audit sampling controls
 - Maintainer signal explanations suitable for README or audit reports
+- PyPI publishing via Trusted Publishing when the maintainer is ready for package distribution
 
 ## Phase 3: Browser or Web Experience
 

@@ -49,3 +49,5 @@ The build command creates source and wheel artifacts in `dist/`, which is ignore
 - Check badge output is Markdown.
 - Check at least one popular public repository through the live GitHub API.
 - Check a missing repository returns an actionable 404 message.
+- For release readiness, also check `python -m build` and confirm the generated
+  `dist/` artifacts are suitable for GitHub release attachment.

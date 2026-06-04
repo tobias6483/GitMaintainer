@@ -15,6 +15,15 @@ GitMaintainer is an early CLI MVP. The scoring model is explainable by design an
 
 ## Install
 
+GitMaintainer is preparing for its first pre-release. Until PyPI publication is
+configured, install from a local checkout:
+
+```sh
+python -m pip install -e .
+```
+
+After PyPI publication:
+
 ```sh
 pipx install gitmaintainer
 ```
