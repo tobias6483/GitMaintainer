@@ -44,6 +44,29 @@ def test_scores_abandoned_repository() -> None:
     assert result.score < 35
 
 
+def test_active_repository_without_github_releases_is_not_risky_for_old_pr_backlog() -> None:
+    metrics = RepoMetrics(
+        owner="rust-lang",
+        name="cargo",
+        default_branch="master",
+        is_archived=False,
+        is_fork=False,
+        latest_commit_days=0,
+        latest_release_days=None,
+        median_issue_response_hours=2,
+        oldest_open_pr_days=1983,
+        open_pr_count=60,
+        bus_factor_estimate=3,
+    )
+
+    result = score_repository(metrics)
+
+    assert result.status == "Active"
+    assert result.score == 80
+    assert "No GitHub releases found" in result.reasons
+    assert "Oldest open PR is over 180 days old" in result.reasons
+
+
 def test_archived_repository_is_risky_even_with_recent_activity() -> None:
     metrics = RepoMetrics(
         owner="owner",

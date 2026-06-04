@@ -21,12 +21,7 @@ def score_repository(metrics: RepoMetrics) -> ScoreResult:
         "No recent commits",
         reasons,
     )
-    score -= _age_penalty(
-        metrics.latest_release_days,
-        [(90, 0), (180, 8), (365, 18), (730, 35)],
-        "No recent releases",
-        reasons,
-    )
+    score -= _release_penalty(metrics, reasons)
 
     if metrics.median_issue_response_hours is None:
         score -= 10
@@ -40,8 +35,12 @@ def score_repository(metrics: RepoMetrics) -> ScoreResult:
 
     if metrics.oldest_open_pr_days is not None:
         if metrics.oldest_open_pr_days > 180:
-            score -= 20
-            reasons.append("Oldest open PR is over 180 days old")
+            if _has_strong_recent_maintenance(metrics):
+                score -= 10
+                reasons.append("Oldest open PR is over 180 days old")
+            else:
+                score -= 20
+                reasons.append("Oldest open PR is over 180 days old")
         elif metrics.oldest_open_pr_days > 60:
             score -= 10
             reasons.append("Oldest open PR is over 60 days old")
@@ -64,6 +63,27 @@ def score_repository(metrics: RepoMetrics) -> ScoreResult:
         reasons.append("Maintenance signals look healthy")
 
     return ScoreResult(status=status, score=score, reasons=tuple(reasons))
+
+
+def _release_penalty(metrics: RepoMetrics, reasons: list[str]) -> int:
+    if metrics.latest_release_days is None and _has_strong_recent_maintenance(metrics):
+        reasons.append("No GitHub releases found")
+        return 10
+
+    return _age_penalty(
+        metrics.latest_release_days,
+        [(90, 0), (180, 8), (365, 18), (730, 35)],
+        "No recent releases",
+        reasons,
+    )
+
+
+def _has_strong_recent_maintenance(metrics: RepoMetrics) -> bool:
+    if metrics.latest_commit_days is None or metrics.latest_commit_days > 30:
+        return False
+    if metrics.median_issue_response_hours is None:
+        return False
+    return metrics.median_issue_response_hours <= 24 * 7
 
 
 def _age_penalty(
