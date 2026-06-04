@@ -29,7 +29,7 @@ def test_version_option_prints_package_version(capsys: pytest.CaptureFixture[str
         main(["--version"])
 
     assert error.value.code == 0
-    assert capsys.readouterr().out.strip() == "gitmaintainer 0.1.0"
+    assert capsys.readouterr().out.strip() == "gitmaintainer 0.1.1"
 
 
 def test_rate_limit_error_is_actionable() -> None:
