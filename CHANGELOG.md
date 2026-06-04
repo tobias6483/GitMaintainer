@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add dependency count summaries for `composer.json` and `go.mod`.
+- No unreleased changes yet.
 
 ## 0.1.0
 
@@ -13,5 +13,6 @@
 - Add package manifest metadata for dependency-review context.
 - Add package build verification for release readiness.
 - Add dependency count summaries for `package.json` and `requirements.txt`.
+- Add dependency count summaries for `composer.json` and `go.mod`.
 - Add a CLI `--version` option.
 - Prepare v0.1.0 as a GitHub pre-release with PyPI publication deferred.
