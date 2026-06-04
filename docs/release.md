@@ -2,7 +2,7 @@
 
 GitMaintainer is pre-release software.
 
-## v0.1.0 Decision
+## Pre-Release Decision
 
 The first release should be published as a GitHub pre-release with attached
 source and wheel artifacts. PyPI publication is deferred until the maintainer
@@ -32,11 +32,11 @@ git pull --ff-only
 python -m pytest
 python -m build
 python -m gitmaintainer --version
-git tag -a v0.1.0 -m "GitMaintainer v0.1.0"
-git push origin v0.1.0
-gh release create v0.1.0 dist/* \
-  --title "GitMaintainer v0.1.0" \
-  --notes-file docs/v0.1-release-notes.md \
+git tag -a vX.Y.Z -m "GitMaintainer vX.Y.Z"
+git push origin vX.Y.Z
+gh release create vX.Y.Z dist/* \
+  --title "GitMaintainer vX.Y.Z" \
+  --notes-file docs/vX.Y.Z-release-notes.md \
   --prerelease
 ```
 
@@ -47,8 +47,8 @@ distribution artifacts from `dist/`.
 
 The project has `pyproject.toml` metadata, console scripts, local package build verification, and a non-required CI package job. Automated PyPI publication is not configured yet.
 
-The `v0.1.0` package artifacts are build-verified and suitable for attachment
-to a GitHub pre-release, but they are not uploaded to PyPI yet.
+Package artifacts should be build-verified before attachment to a GitHub
+pre-release. They are not uploaded to PyPI yet.
 
 ## Security Gate
 

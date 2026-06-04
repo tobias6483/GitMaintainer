@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No unreleased changes yet.
+
+## 0.1.1
+
 - Add dependency count summaries for `Cargo.toml`.
 - Tune scoring so active repositories without GitHub releases are not marked risky solely because of old pull request backlog.
 
