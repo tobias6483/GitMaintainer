@@ -20,7 +20,7 @@ GitHub pagination is bounded per endpoint to keep CLI runtime predictable. Commi
 
 Rate-limit headers are captured during API access and attached to metrics as API budget metadata. JSON output exposes the budget directly, while text output only warns when remaining requests are low.
 
-Package manifest detection uses the GitHub Contents API for root-level files on the repository default branch. Dependency count parsing is intentionally shallow and currently covers `package.json` through `json` and `requirements.txt` through simple line filtering. Unsupported manifests are still returned with a `parsed: false` summary so callers can distinguish unparsed metadata from missing manifests.
+Package manifest detection uses the GitHub Contents API for root-level files on the repository default branch. Dependency count parsing is intentionally shallow and currently covers `package.json` and `composer.json` through `json`, `requirements.txt` through simple line filtering, and `go.mod` through direct `require` counting. Unsupported manifests are still returned with a `parsed: false` summary so callers can distinguish unparsed metadata from missing manifests.
 
 Scoring is intentionally explainable. Avoid opaque models until the project has clear validation data and a documented evaluation process.
 

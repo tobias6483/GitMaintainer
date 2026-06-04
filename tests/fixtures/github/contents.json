@@ -18,6 +18,18 @@
     "download_url": "https://raw.example/octo/widget/main/requirements.txt"
   },
   {
+    "name": "composer.json",
+    "path": "composer.json",
+    "type": "file",
+    "download_url": "https://raw.example/octo/widget/main/composer.json"
+  },
+  {
+    "name": "go.mod",
+    "path": "go.mod",
+    "type": "file",
+    "download_url": "https://raw.example/octo/widget/main/go.mod"
+  },
+  {
     "name": "docs",
     "path": "docs",
     "type": "dir"

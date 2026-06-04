@@ -9,7 +9,9 @@ from gitmaintainer.github import (
     GitHubClient,
     _JsonResponse,
     _bus_factor,
+    _composer_json_dependency_summary,
     _first_non_author_comment,
+    _go_mod_dependency_summary,
     _package_json_dependency_summary,
     _package_manifests_from_contents,
     _parse_link_header,
@@ -121,6 +123,8 @@ def test_package_manifest_detection_uses_known_root_files_only() -> None:
         ("pyproject.toml", "Python", None),
         ("package.json", "JavaScript", "npm"),
         ("requirements.txt", "Python", "pip"),
+        ("composer.json", "PHP", "Composer"),
+        ("go.mod", "Go", "Go modules"),
     ]
     assert manifests[0].dependency_summary is not None
     assert manifests[0].dependency_summary.parsed is False
@@ -140,6 +144,24 @@ def test_requirements_dependency_summary_counts_requirement_lines() -> None:
 
     assert summary.parsed is True
     assert summary.dependency_count == 2
+    assert summary.dev_dependency_count == 0
+    assert summary.optional_dependency_count == 0
+
+
+def test_composer_json_dependency_summary_counts_runtime_and_dev_dependencies() -> None:
+    summary = _composer_json_dependency_summary((FIXTURES / "composer.json").read_text())
+
+    assert summary.parsed is True
+    assert summary.dependency_count == 2
+    assert summary.dev_dependency_count == 1
+    assert summary.optional_dependency_count == 0
+
+
+def test_go_mod_dependency_summary_counts_single_and_block_requires() -> None:
+    summary = _go_mod_dependency_summary((FIXTURES / "go.mod").read_text())
+
+    assert summary.parsed is True
+    assert summary.dependency_count == 3
     assert summary.dev_dependency_count == 0
     assert summary.optional_dependency_count == 0
 
@@ -197,6 +219,12 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
         "https://raw.example/octo/widget/main/requirements.txt": (
             FIXTURES / "requirements.txt"
         ).read_text(),
+        "https://raw.example/octo/widget/main/composer.json": (
+            FIXTURES / "composer.json"
+        ).read_text(),
+        "https://raw.example/octo/widget/main/go.mod": (
+            FIXTURES / "go.mod"
+        ).read_text(),
     }[url]
 
     metrics = client.metrics("octo", "widget")
@@ -219,6 +247,8 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
         ("pyproject.toml", "Python", None),
         ("package.json", "JavaScript", "npm"),
         ("requirements.txt", "Python", "pip"),
+        ("composer.json", "PHP", "Composer"),
+        ("go.mod", "Go", "Go modules"),
     ]
     summaries = [manifest.dependency_summary for manifest in metrics.package_manifests]
     assert summaries[0] is not None and summaries[0].parsed is False
@@ -226,6 +256,9 @@ def test_metrics_are_extracted_from_github_api_fixtures() -> None:
     assert summaries[1] is not None and summaries[1].dev_dependency_count == 1
     assert summaries[1] is not None and summaries[1].optional_dependency_count == 1
     assert summaries[2] is not None and summaries[2].dependency_count == 2
+    assert summaries[3] is not None and summaries[3].dependency_count == 2
+    assert summaries[3] is not None and summaries[3].dev_dependency_count == 1
+    assert summaries[4] is not None and summaries[4].dependency_count == 3
     assert metrics.api_budget is not None
     assert metrics.api_budget.limit == 5000
     assert metrics.api_budget.remaining == 4991

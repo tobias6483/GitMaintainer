@@ -24,7 +24,7 @@
 
 - Compare multiple repositories
 - Export reports
-- Dependency-file parsing for more package ecosystems
+- Dependency-file parsing for more package ecosystems beyond npm, pip, Composer, and Go modules
 - Larger dependency-audit sampling controls
 - Maintainer signal explanations suitable for README or audit reports
 - PyPI publishing via Trusted Publishing when the maintainer is ready for package distribution

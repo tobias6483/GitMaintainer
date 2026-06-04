@@ -329,7 +329,7 @@ def _dependency_summary(
     item: dict,
     fetch_text: Callable[[str], str] | None,
 ) -> DependencySummary | None:
-    if name not in {"package.json", "requirements.txt"}:
+    if name not in {"package.json", "requirements.txt", "composer.json", "go.mod"}:
         return DependencySummary(parsed=False, note="Dependency parsing is not supported yet")
     if fetch_text is None:
         return None
@@ -345,7 +345,11 @@ def _dependency_summary(
 
     if name == "package.json":
         return _package_json_dependency_summary(text)
-    return _requirements_dependency_summary(text)
+    if name == "requirements.txt":
+        return _requirements_dependency_summary(text)
+    if name == "composer.json":
+        return _composer_json_dependency_summary(text)
+    return _go_mod_dependency_summary(text)
 
 
 def _package_json_dependency_summary(text: str) -> DependencySummary:
@@ -387,6 +391,68 @@ def _requirements_dependency_summary(text: str) -> DependencySummary:
         dev_dependency_count=0,
         optional_dependency_count=0,
     )
+
+
+def _composer_json_dependency_summary(text: str) -> DependencySummary:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return DependencySummary(parsed=False, note="composer.json is invalid JSON")
+
+    if not isinstance(payload, dict):
+        return DependencySummary(parsed=False, note="composer.json root is not an object")
+
+    return DependencySummary(
+        parsed=True,
+        dependency_count=_composer_dependency_count(payload.get("require")),
+        dev_dependency_count=_dependency_object_size(payload.get("require-dev")),
+        optional_dependency_count=0,
+    )
+
+
+def _composer_dependency_count(value: object) -> int:
+    if not isinstance(value, dict):
+        return 0
+    return sum(
+        1
+        for name in value
+        if isinstance(name, str) and name != "php" and not name.startswith("ext-")
+    )
+
+
+def _go_mod_dependency_summary(text: str) -> DependencySummary:
+    return DependencySummary(
+        parsed=True,
+        dependency_count=_go_mod_require_count(text),
+        dev_dependency_count=0,
+        optional_dependency_count=0,
+    )
+
+
+def _go_mod_require_count(text: str) -> int:
+    dependency_count = 0
+    in_require_block = False
+
+    for raw_line in text.splitlines():
+        line = raw_line.split("//", 1)[0].strip()
+        if not line:
+            continue
+
+        if in_require_block:
+            if line == ")":
+                in_require_block = False
+                continue
+            if line:
+                dependency_count += 1
+            continue
+
+        if line == "require (":
+            in_require_block = True
+            continue
+        if line.startswith("require "):
+            dependency_count += 1
+
+    return dependency_count
 
 
 def _days_since(value: dt.datetime | None, now: dt.datetime) -> int | None:
