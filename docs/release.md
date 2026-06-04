@@ -2,6 +2,15 @@
 
 GitMaintainer is pre-release software.
 
+## v0.1.0 Decision
+
+The first release should be published as a GitHub pre-release with attached
+source and wheel artifacts. PyPI publication is deferred until the maintainer
+explicitly opts into package ownership and configures Trusted Publishing.
+
+Do not upload to PyPI with an API token. Future PyPI publication should use
+Trusted Publishing from GitHub Actions.
+
 ## Release Checklist
 
 1. Update `CHANGELOG.md`.
@@ -9,12 +18,37 @@ GitMaintainer is pre-release software.
 3. Run `python -m build`.
 4. Run manual CLI QA from `docs/development.md`.
 5. Confirm README install and usage instructions are current.
-6. Tag the release.
-7. Publish package artifacts when PyPI publication is ready.
+6. Confirm `PRIVACY.md` and `SECURITY.md` still match implementation.
+7. Tag the release.
+8. Publish the GitHub pre-release with build artifacts.
+
+## Manual GitHub Pre-Release Flow
+
+Run this from a clean, up-to-date `main` after CI is green:
+
+```sh
+git switch main
+git pull --ff-only
+python -m pytest
+python -m build
+python -m gitmaintainer --version
+git tag -a v0.1.0 -m "GitMaintainer v0.1.0"
+git push origin v0.1.0
+gh release create v0.1.0 dist/* \
+  --title "GitMaintainer v0.1.0" \
+  --notes-file docs/v0.1-release-notes.md \
+  --prerelease
+```
+
+Verify the release page shows the pre-release marker, release notes, and both
+distribution artifacts from `dist/`.
 
 ## Packaging Status
 
 The project has `pyproject.toml` metadata, console scripts, local package build verification, and a non-required CI package job. Automated PyPI publication is not configured yet.
+
+The `v0.1.0` package artifacts are build-verified and suitable for attachment
+to a GitHub pre-release, but they are not uploaded to PyPI yet.
 
 ## Security Gate
 

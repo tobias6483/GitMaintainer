@@ -22,4 +22,5 @@
 ## Planned Improvements
 
 - Add dependency-file parsing for more package ecosystems.
+- Add PyPI publishing through Trusted Publishing after the GitHub pre-release.
 - Add browser extension or web UI after CLI scoring stabilizes.
